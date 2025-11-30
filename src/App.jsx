@@ -7,6 +7,7 @@ import Register from './Pages/Register';
 import Home from './Pages/Home';
 import TypingGame from './components/TypingGame';
 import PointsShop from './components/PointsShop';
+import ChatAnonim from '.components/ChatAnonim';
 
 function App() {
   const { user, loading } = useAuth();
@@ -49,6 +50,9 @@ function App() {
   }
 
   return (
+	<div className="App">
+	<ChatAnonim />
+	</div>
     <Layout currentPath={currentPath} onNavigate={navigate}>
       {pageToRender}
     </Layout>

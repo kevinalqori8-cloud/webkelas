@@ -1,235 +1,121 @@
-import React, { useState, useEffect, useRef } from "react";
-import { addDoc, collection, query, orderBy, onSnapshot, getDocs } from "firebase/firestore";
-import { db, auth } from "../firebase";
-import axios from "axios";
-import Swal from "sweetalert2";
-import { io } from "socket.io-client";
+// src/components/ChatAnonim.jsx
 
-const socket = io('http://localhost:3001');
+import React, { useState, useEffect, useRef } from 'react';
+import './ChatAnonim.css'; // Pastikan path ini benar
 
-function Chat() {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
-  const [userIp, setUserIp] = useState("");
-  const [messageCount, setMessageCount] = useState(0);
+// Fungsi helper untuk membuat username acak
+const getRandomUsername = () => `Anon${Math.floor(Math.random() * 10000)}`;
 
-  const chatsCollectionRef = collection(db, "chats");
+const ChatAnonim = () => {
+  const [messages, setMessages] = useState([
+    // Pesan awal untuk demo
+    { id: 1, sender: 'other', text: 'Halo, ada orang?', timestamp: new Date() },
+  ]);
+  const [newMessage, setNewMessage] = useState('');
+  const [myUsername] = useState(getRandomUsername());
+  const [otherUsername] = useState(getRandomUsername());
+  const [isTyping, setIsTyping] = useState(false);
+
+  // Ref untuk auto-scroll ke pesan terakhir
   const messagesEndRef = useRef(null);
 
-  // Fungsi untuk mengambil daftar alamat IP yang diblokir dari Firebase Firestore
-  const fetchBlockedIPs = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "blacklist_ips"));
-      const blockedIPs = querySnapshot.docs.map((doc) => doc.data().ipAddress);
-      return blockedIPs;
-    } catch (error) {
-      console.error("Gagal mengambil daftar IP yang diblokir:", error);
-      return [];
-    }
-  }
-
-  useEffect(() => {
-	socket.on('chat_message', (msg) => {
-      setMessages(prevMessages => [...prevMessages, msg]);
-    });
-	// --- LISTENER PENGUMUMAN DARI GAME ---
-    socket.on('new_announcement', (data) => {
-      // Tambahkan pesan pengumuman dengan gaya khusus
-      const announcementMessage = {
-        text: data.message,
-        type: 'announcement' // Tipe khusus untuk styling
-      };
-      setMessages(prevMessages => [...prevMessages, announcementMessage]);
-    });
-
-    return () => socket.off(); // Cleanup listener saat komponen unmount
-  }, []);
-    // Memuat pesan dari Firestore dan mengatur langganan untuk memantau perubahan
-    const queryChats = query(chatsCollectionRef, orderBy("timestamp"));
-    const unsubscribe = onSnapshot(queryChats, (snapshot) => {
-      const newMessages = snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          ...data,
-          userIp: data.userIp,
-        };
-      });
-      setMessages(newMessages);
-      if (shouldScrollToBottom) {
-        scrollToBottom();
-      }
-    });
-
-    return () => {
-      unsubscribe(); // Membersihkan langganan saat komponen tidak lagi digunakan
-    }
-  }, [shouldScrollToBottom]);
-
-  useEffect(() => {
-    // Mengambil alamat IP pengguna dan memeriksa batasan pesan
-    getUserIp();
-    checkMessageCount();
-    scrollToBottom();
-  }, []);
-
   const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Effect untuk auto-scroll setiap kali ada pesan baru
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Fungsi untuk mengirim pesan
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (newMessage.trim() === '') return;
+
+    const message = {
+      id: Date.now(), // ID unik sementara
+      sender: 'me',
+      text: newMessage,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, message]);
+    setNewMessage('');
+
+    // Simulasi balasan dari 'other'
+    simulateReply();
+  };
+
+  // Fungsi untuk mensimulasikan balasan
+  const simulateReply = () => {
+    setIsTyping(true);
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-    }, 100);
-  }
-
-  const getUserIp = async () => {
-    try {
-      // Cek apakah alamat IP sudah disimpan di localStorage
-      const cachedIp = localStorage.getItem("userIp");
-      if (cachedIp) {
-        setUserIp(cachedIp);
-        return;
-      }
-      // Jika tidak ada di localStorage, ambil alamat IP dari API eksternal
-      const response = await axios.get("https://ipapi.co/json");
-      const newUserIp = response.data.network;
-      setUserIp(newUserIp);
-      // Simpan alamat IP dalam localStorage dengan waktu kedaluwarsa (misalnya, 1 jam)
-      const expirationTime = new Date().getTime() + 60 * 60 * 1000; // 1 jam
-      localStorage.setItem("userIp", newUserIp);
-      localStorage.setItem("ipExpiration", expirationTime.toString());
-    } catch (error) {
-      console.error("Gagal mendapatkan alamat IP:", error);
-    }
-  };
-
-  const checkMessageCount = () => {
-    const userIpAddress = userIp;
-    const currentDate = new Date();
-    const currentDateString = currentDate.toDateString();
-    const storedDateString = localStorage.getItem("messageCountDate");
-
-    if (currentDateString === storedDateString) {
-      // Jika tanggal saat ini sama dengan tanggal yang disimpan, periksa batasan pesan
-      const userSentMessageCount = parseInt(localStorage.getItem(userIpAddress)) || 0;
-      if (userSentMessageCount >= 20) { // Batasan pesan per hari (2 pesan)
-        Swal.fire({
-          icon: "error",
-          title: "Message limit exceeded",
-          text: "You have reached your daily message limit.",
-          customClass: {
-            container: "sweet-alert-container",
-          },
-        });
-      } else {
-        setMessageCount(userSentMessageCount);
-      }
-    } else {
-      // Jika tanggal berbeda, bersihkan data penghitungan pesan sebelumnya
-      localStorage.removeItem(userIpAddress);
-      localStorage.setItem("messageCountDate", currentDateString);
-    }
-  };
-
-  // Fungsi untuk memeriksa apakah alamat IP pengguna ada dalam daftar hitam
-  const isIpBlocked = async () => {
-    const blockedIPs = await fetchBlockedIPs();
-    return blockedIPs.includes(userIp);
-  };
-
-  const sendMessage = async () => {
-    if (message.trim() !== "") {
-      // Memanggil isIpBlocked untuk memeriksa apakah pengguna diblokir
-      const isBlocked = await isIpBlocked();
-
-      if (isBlocked) {
-        Swal.fire({
-          icon: "error",
-          title: "Blocked",
-          text: "You are blocked from sending messages.",
-          customClass: {
-            container: "sweet-alert-container",
-          },
-        });
-        return;
-      }
-
-      const senderImageURL = auth.currentUser?.photoURL || "/AnonimUser.png";
-      const trimmedMessage = message.trim().substring(0, 60);
-      const userIpAddress = userIp;
-
-      if (messageCount >= 20) { // Batasan pesan per hari (20 pesan)
-        Swal.fire({
-          icon: "error",
-          title: "Message limit exceeded",
-          text: "You have reached your daily message limit.",
-          customClass: {
-            container: "sweet-alert-container",
-          },
-        });
-        return;
-      }
-
-      const updatedSentMessageCount = messageCount + 1;
-      localStorage.setItem(userIpAddress, updatedSentMessageCount.toString());
-      setMessageCount(updatedSentMessageCount);
-
-      // Menambahkan pesan ke Firestore
-      await addDoc(chatsCollectionRef, {
-        message: trimmedMessage,
-        sender: {
-          image: senderImageURL,
-        },
+      setIsTyping(false);
+      const replies = [
+        'Iya, ada kok.',
+        'Lagi ngapain?',
+        'Oh, begitu.',
+        'Wah, seru.',
+        'Hmm, saya setuju.',
+      ];
+      const replyText = replies[Math.floor(Math.random() * replies.length)];
+      
+      const replyMessage = {
+        id: Date.now(),
+        sender: 'other',
+        text: replyText,
         timestamp: new Date(),
-        userIp: userIp,
-      });
-
-      setMessage(""); // Menghapus pesan setelah mengirim
-      setTimeout(() => {
-        setShouldScrollToBottom(true);
-      }, 100);
-    }
+      };
+      setMessages((prev) => [...prev, replyMessage]);
+    }, 2000 + Math.random() * 2000); // Balasan acak antara 2-4 detik
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      sendMessage();
-    }
+  // Fungsi untuk memformat timestamp
+  const formatTime = (date) => {
+    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
-    <div className="" id="ChatAnonim">
-      <div className="text-center text-4xl font-semibold" id="Glow">
-        Text Anonim
-      </div>
-	{messages.map((msg, index) => (
-          <li key={index} className={msg.type === 'announcement' ? 'announcement' : ''}>
-            {msg.text}
-          </li>
-        ))}
-      <div className="mt-5" id="KotakPesan" style={{ overflowY: "auto" }}>
-        {messages.map((msg, index) => (
-          <div key={index} className="flex items-start text-sm py-[1%]">
-            <img src={msg.sender.image} alt="User Profile" className="h-7 w-7 mr-2 " />
-            <div className="relative top-[0.30rem]">{msg.message}</div>
+    <div className="chat-container">
+      <header className="chat-header">
+        {otherUsername}
+      </header>
+
+      <main className="messages-list">
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`message ${msg.sender === 'me' ? 'message-sent' : 'message-received'}`}
+          >
+            <div className="message-bubble">{msg.text}</div>
+            <span className="message-timestamp">{formatTime(msg.timestamp)}</span>
           </div>
         ))}
-        <div ref={messagesEndRef}></div>
-      </div>
-      <div id="InputChat" className="flex items-center mt-5">
+        {isTyping && <div className="typing-indicator">{otherUsername} sedang mengetik...</div>}
+        {/* Elemen dummy untuk di-scroll oleh ref */}
+        <div ref={messagesEndRef} />
+      </main>
+
+      <form className="message-input-form" onSubmit={handleSendMessage}>
         <input
-          className="bg-transparent flex-grow pr-4 w-4 placeholder:text-white placeholder:opacity-60"
           type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Ketik pesan Anda..."
-          maxLength={60}
+          className="message-input"
+          placeholder="Ketik pesan..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          autoComplete="off"
         />
-        <button onClick={sendMessage} className="ml-2">
-          <img src="/paper-plane.png" alt="" className="h-4 w-4 lg:h-6 lg:w-6" />
+        <button type="submit" className="send-button">
+          {/* Ikon kirim (bisa diganti dengan SVG) */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
         </button>
-      </div>
+      </form>
     </div>
   );
-}
+};
 
-export default Chat;
+export default ChatAnonim;
