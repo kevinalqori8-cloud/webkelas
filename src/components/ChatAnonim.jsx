@@ -3,6 +3,9 @@ import { addDoc, collection, query, orderBy, onSnapshot, getDocs } from "firebas
 import { db, auth } from "../firebase";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { io } from "socket.io-client";
+
+const socket = io('http://localhost:3001');
 
 function Chat() {
   const [message, setMessage] = useState("");
@@ -27,6 +30,21 @@ function Chat() {
   }
 
   useEffect(() => {
+	socket.on('chat_message', (msg) => {
+      setMessages(prevMessages => [...prevMessages, msg]);
+    });
+	// --- LISTENER PENGUMUMAN DARI GAME ---
+    socket.on('new_announcement', (data) => {
+      // Tambahkan pesan pengumuman dengan gaya khusus
+      const announcementMessage = {
+        text: data.message,
+        type: 'announcement' // Tipe khusus untuk styling
+      };
+      setMessages(prevMessages => [...prevMessages, announcementMessage]);
+    });
+
+    return () => socket.off(); // Cleanup listener saat komponen unmount
+  }, []);
     // Memuat pesan dari Firestore dan mengatur langganan untuk memantau perubahan
     const queryChats = query(chatsCollectionRef, orderBy("timestamp"));
     const unsubscribe = onSnapshot(queryChats, (snapshot) => {
@@ -182,7 +200,11 @@ function Chat() {
       <div className="text-center text-4xl font-semibold" id="Glow">
         Text Anonim
       </div>
-
+	{messages.map((msg, index) => (
+          <li key={index} className={msg.type === 'announcement' ? 'announcement' : ''}>
+            {msg.text}
+          </li>
+        ))}
       <div className="mt-5" id="KotakPesan" style={{ overflowY: "auto" }}>
         {messages.map((msg, index) => (
           <div key={index} className="flex items-start text-sm py-[1%]">

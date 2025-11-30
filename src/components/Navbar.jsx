@@ -1,32 +1,34 @@
-// src/components/Navbar.js
 import React from 'react';
-import './Navbar.css'; // Kita buat file CSS-nya nanti
+import { useAuth } from '../contexts/AuthContext';
 
-const Navbar = ({ sections, activeSection }) => {
-  // Fungsi untuk melakukan scroll halus
-  const handleScroll = (event, targetId) => {
-    event.preventDefault(); // Mencegah lompatan instan
-    const element = document.getElementById(targetId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
+const Navbar = ({ currentPath, onNavigate }) => {
+  const { logout } = useAuth();
+  const navItems = [
+    { path: '/', label: 'Beranda' },
+    { path: '/game', label: 'Game' },
+    { path: '/shop', label: 'Toko' },
+  ];
 
   return (
-    <nav className="navbar">
-      <ul>
-        {sections.map((section) => (
-          <li key={section.id}>
-            <a
-              href={`#${section.id}`}
-              className={activeSection === section.id ? 'active' : ''}
-              onClick={(e) => handleScroll(e, section.id)}
-            >
-              {section.title}
-            </a>
-          </li>
+    <nav className="bg-gray-800 p-4 text-white flex justify-between items-center">
+      <div className="flex space-x-4">
+        {navItems.map((item) => (
+          <a
+            key={item.path}
+            href={item.path}
+            onClick={(e) => {
+              e.preventDefault();
+              onNavigate(item.path);
+            }}
+            className={`hover:underline ${currentPath === item.path ? 'font-bold' : ''}`}
+          >
+            {item.label}
+          </a>
         ))}
-      </ul>
+      </div>
+      <button onClick={logout} className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded">
+        Logout
+      </button>
     </nav>
   );
 };

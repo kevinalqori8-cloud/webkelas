@@ -1,88 +1,57 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from './contexts/AuthContext';
 
-import React, { useEffect, useState, useRef } from "react"
-import Home from "./Pages/Home"
-import Carousel from "./Pages/Gallery"
-import FullWidthTabs from "./Pages/Tabs"
-import Footer from "./Pages/Footer"
-import Chat from "./components/ChatAnonim"
-import AOS from "aos"
-import "aos/dist/aos.css"
-import FlashcardMatch from './components/FlashcardMatch'
-import Navbar from './components/Navbar'
-import './App.css'
-
-// Data section yang sudah diperbarui
-const sectionsData = [
-  { id: 'beranda', title: 'Beranda', component: <Home /> },
-  { id: 'galeri', title: 'Galeri', component: <Carousel /> },
-  { id: 'tabs', title: 'Tabs', component: <FullWidthTabs /> },
-  { id: 'game', title: 'Game', component: <FlashcardMatch /> },
-  { id: 'chat', title: 'Chat', component: <Chat /> },
-  { id: 'footer', title: 'Footer', component: <Footer /> }
-];
+import Layout from './components/Layout';
+import Login from './Pages/Login';
+import Register from './Pages/Register';
+import Home from './Pages/Home';
+import TypingGame from './components/TypingGame';
+import PointsShop from './components/PointsShop';
 
 function App() {
-  const [activeSection, setActiveSection] = useState('');
-  const observerRefs = useRef([]);
+  const { user, loading } = useAuth();
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  const navigate = (newPath) => {
+    window.history.pushState({}, '', newPath);
+    setCurrentPath(newPath);
+  };
 
   useEffect(() => {
-    // Inisialisasi AOS
-    AOS.init({
-      duration: 1200, // Durasi animasi
-    });
-
-    const handleIntersection = (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          window.history.replaceState(null, null, `#${entry.target.id}`);
-          setActiveSection(entry.target.id);
-        }
-      });
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
     };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
-    const observerOptions = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.5, // Section dianggap aktif jika 50%-nya terlihat
-    };
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
-    const observer = new IntersectionObserver(handleIntersection, observerOptions);
+  if (!user) {
+    if (currentPath === '/register') {
+      return <Register />;
+    }
+    return <Login />;
+  }
 
-    observerRefs.current.forEach((ref) => {
-      if (ref) {
-        observer.observe(ref);
-      }
-    });
-
-    // Cleanup function
-    return () => {
-      observerRefs.current.forEach((ref) => {
-        if (ref) {
-          observer.unobserve(ref);
-        }
-      });
-    };
-  }, []); // Efek ini hanya dijalankan sekali saat komponen dimuat
+  let pageToRender;
+  switch (currentPath) {
+    case '/game':
+      pageToRender = <TypingGame />;
+      break;
+    case '/shop':
+      pageToRender = <PointsShop />;
+      break;
+    default:
+      pageToRender = <Home />;
+  }
 
   return (
-    <div>
-      <Navbar sections={sectionsData} activeSection={activeSection} />
-      <main>
-        {sectionsData.map((section) => (
-          <section
-            key={section.id}
-            id={section.id}
-            ref={(el) => (observerRefs.current[section.id] = el)}
-            // Tambahkan data-aos untuk animasi
-            data-aos="fade-up" 
-            data-aos-duration="1200"
-          >
-            {/* Render komponen yang sesuai di dalam section */}
-            {section.component}
-          </section>
-        ))}
-      </main>
-    </div>
+    <Layout currentPath={currentPath} onNavigate={navigate}>
+      {pageToRender}
+    </Layout>
   );
 }
 
