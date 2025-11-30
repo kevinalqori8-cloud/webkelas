@@ -1,17 +1,15 @@
 
-// src/App.js
-
-import React, { useEffect, useState, useRef } from "react";
-import Home from "./Pages/Home";
-import Carousel from "./Pages/Gallery";
-import FullWidthTabs from "./Pages/Tabs";
-import Footer from "./Pages/Footer";
-import Chat from "./components/ChatAnonim";
-import AOS from "aos";
-import "aos/dist/aos.css";
-import FlashcardMatch from './components/FlashcardMatch';
-import Navbar from './components/Navbar';
-import './App.css';
+import React, { useEffect, useState, useRef } from "react"
+import Home from "./Pages/Home"
+import Carousel from "./Pages/Gallery"
+import FullWidthTabs from "./Pages/Tabs"
+import Footer from "./Pages/Footer"
+import Chat from "./components/ChatAnonim"
+import AOS from "aos"
+import "aos/dist/aos.css"
+import FlashcardMatch from './components/FlashcardMatch'
+import Navbar from './components/Navbar'
+import './App.css'
 
 // Data section yang sudah diperbarui
 const sectionsData = [
