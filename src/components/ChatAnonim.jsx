@@ -64,7 +64,7 @@ function Chat() {
     return () => {
       unsubscribe(); // Membersihkan langganan saat komponen tidak lagi digunakan
     }
-  }, [shouldScrollToBottom]);
+  } [shouldScrollToBottom]);
 
   useEffect(() => {
     // Mengambil alamat IP pengguna dan memeriksa batasan pesan
