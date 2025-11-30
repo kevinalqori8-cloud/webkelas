@@ -1,0 +1,40 @@
+/* src/App.css */
+
+/* Beri jarak di atas agar tidak tertutup navbar */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth; /* Fallback smooth scroll */
+}
+
+main {
+  margin-top: 60px; /* Sesuaikan dengan tinggi navbar */
+}
+
+section {
+  min-height: 90vh; /* Setiap section memenuhi hampir seluruh layar */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* Berikan warna berbeda untuk setiap section agar mudah dibedakan */
+#slide-satu {
+  background-color: #f2f2f2;
+}
+
+#slide-dua {
+  background-color: #e6e6e6;
+}
+
+#slide-tiga {
+  background-color: #d9d9d9;
+}
