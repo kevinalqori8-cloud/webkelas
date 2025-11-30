@@ -33,7 +33,7 @@ function App() {
     };
 	setActiveSection(entry.target.id);
         }
-      });
+      );
     };
 
     const observerOptions = {
