@@ -1,110 +1,106 @@
-// src/components/TypingGame.js
+// Contoh komponen TypingGame.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import './TypingGame.css'; // Buat file CSS untuk styling
+import './TypingGame.css'; // Sesuaikan path
 
-const sampleTexts = [
-  "React adalah library JavaScript untuk membangun antarmuka pengguna.",
-  "State management adalah cara mengelola data dalam aplikasi React.",
-  "Vite adalah build tool modern yang memberikan pengalaman pengembangan cepat.",
-];
-
-function TypingGame() {
-  const [text, setText] = useState('');
+const TypingGame = () => {
+  const sampleText = "The quick brown fox jumps over the lazy dog. Practice makes perfect.";
   const [userInput, setUserInput] = useState('');
-  const [startTime, setStartTime] = useState(null);
-  const [wpm, setWpm] = useState(0);
+  const [time, setTime] = useState(60);
   const [isGameActive, setIsGameActive] = useState(false);
-  const [isGameFinished, setIsGameFinished] = useState(false);
   const inputRef = useRef(null);
 
-  useEffect(() => {
-    // Pilih teks acak saat komponen dimuat
-    setText(sampleTexts[Math.floor(Math.random() * sampleTexts.length)]);
-  }, []);
-
+  // Fungsi untuk memulai game
   const startGame = () => {
     setIsGameActive(true);
-    setStartTime(Date.now());
     setUserInput('');
-    setIsGameFinished(false);
-    setWpm(0);
+    setTime(60);
     inputRef.current.focus();
   };
 
-  const handleInputChange = (e) => {
-    if (!isGameActive) return;
-
-    const currentInput = e.target.value;
-    setUserInput(currentInput);
-
-    // Cek apakah pengguna selesai mengetik
-    if (currentInput === text) {
-      endGame();
+  // Logika timer
+  useEffect(() => {
+    let timer;
+    if (isGameActive && time > 0) {
+      timer = setTimeout(() => setTime(time - 1), 1000);
+    } else if (time === 0) {
+      setIsGameActive(false);
     }
+    return () => clearTimeout(timer);
+  }, [isGameActive, time]);
+
+  // Fungsi untuk render karakter dengan kelas yang tepat
+  const renderText = () => {
+    return sampleText.split('').map((char, index) => {
+      let className = 'char';
+      if (index < userInput.length) {
+        className += userInput[index] === char ? ' correct' : ' incorrect';
+      }
+      if (index === userInput.length) {
+        className += ' current';
+      }
+      return (
+        <span key={index} className={className}>
+          {char}
+        </span>
+      );
+    });
   };
 
-  const endGame = () => {
-    setIsGameActive(false);
-    setIsGameFinished(true);
-
-    const endTime = Date.now();
-    const timeInSeconds = (endTime - startTime) / 1000;
-    const wordsTyped = text.trim().split(' ').length;
-    const calculatedWPM = Math.round((wordsTyped / timeInSeconds) * 60);
-    
-    setWpm(calculatedWPM);
-
-    // --- INTEGRASI PENTING DI SINI ---
-    // 1. Hitung poin (misal: 10 poin per WPM)
-    const pointsEarned = calculatedWPM * 10;
-
-    // 2. Kirim poin ke backend (simulasi)
-    console.log(`Mengirim ${pointsEarned} poin ke backend...`);
-    // fetch('/api/user/add-points', { method: 'POST', body: JSON.stringify({ points: pointsEarned }) });
-
-    // 3. Kirim pengumuman ke chat via WebSocket
-    announceToChat(pointsEarned);
-  };
-  
-  // Fungsi untuk mengirim pengumuman ke server Socket.IO
-  const announceToChat = (points) => {
-    // Asumsikan Anda memiliki instance socket yang terhubung
-    // import { socket } from './socket'; 
-    // socket.emit('send_announcement', {
-    //   type: 'points_earned',
-    //   message: `🎉 Selamat! Anda baru saja mendapatkan ${points} poin dari game Typing Speed Test!`,
-    //   points: points
-    // });
-    console.log(`PENGUMUMAN KE CHAT: 🎉 Selamat! Anda baru saja mendapatkan ${points} poin dari game Typing Speed Test!`);
+  // Hitung WPM (Words Per Minute)
+  const calculateWPM = () => {
+    if (!isGameActive && userInput.length > 0) {
+      const wordsTyped = userInput.trim().split(/\s+/).length;
+      return Math.round(wordsTyped / (60 / time)); // Sederhanakan, diasumsikan 60 detik
+    }
+    return 0;
   };
 
   return (
     <div className="typing-game-container">
-      <h2>Typing Speed Test</h2>
-      <div className="text-display">
-        <p>{text}</p>
-      </div>
-      <textarea
-        ref={inputRef}
-        value={userInput}
-        onChange={handleInputChange}
-        placeholder="Klik 'Mulai' dan ketik teks di atas..."
-        disabled={!isGameActive}
-        rows="5"
-      />
-      <div className="game-controls">
-        {!isGameActive && !isGameFinished && <button onClick={startGame}>Mulai Game</button>}
-        {isGameFinished && (
-          <div className="results">
-            <h3>Selesai!</h3>
-            <p>Kecepatan Mengetik: <strong>{wpm} WPM</strong></p>
-            <p>Poin Didapat: <strong>{wpm * 10}</strong></p>
-            <button onClick={startGame}>Main Lagi</button>
+      <header className="game-header">
+        <h1>Typing Speed Test</h1>
+      </header>
+
+      <div className="game-info">
+        <div className="game-stats">
+          <div className="stat-item">
+            <span className="stat-label">WPM</span>
+            <span className="stat-value">{calculateWPM()}</span>
           </div>
+          <div className="stat-item">
+            <span className="stat-label">Time</span>
+            <span className="stat-value">{time}s</span>
+          </div>
+        </div>
+      </div>
+
+      <main className="text-display-area">
+        {/* Input yang tidak terlihat */}
+        <input
+          ref={inputRef}
+          className="typing-input"
+          type="text"
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+          disabled={!isGameActive}
+        />
+        {/* Teks yang ditampilkan dengan styling */}
+        <div>{renderText()}</div>
+      </main>
+
+      <div className="game-controls">
+        {!isGameActive ? (
+          <button className="btn btn-primary" onClick={startGame}>
+            Start Game
+          </button>
+        ) : (
+          <button className="btn btn-secondary" onClick={() => setIsGameActive(false)}>
+            Stop Game
+          </button>
         )}
       </div>
     </div>
   );
-}
+};
 
 export default TypingGame;
