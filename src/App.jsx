@@ -6,6 +6,7 @@ import Footer from "./Pages/Footer"
 import Chat from "./components/ChatAnonim"
 import AOS from "aos"
 import "aos/dist/aos.css"
+import FlashcardMatch from './components/FlashcardMatch'
 
 function App() {
 	useEffect(() => {
@@ -29,6 +30,11 @@ function App() {
 				data-aos="fade-up"
 				data-aos-duration="1200">
 				<Chat />
+			</div>
+				<div className="App">
+				<main>
+				<FlashcardMatch />
+				</main>
 			</div>
 
 			<Footer />
